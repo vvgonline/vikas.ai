@@ -1,0 +1,91 @@
+# Vikas AI
+
+> Privacy-first in-browser AI chat powered by WebLLM
+> By VVG ONLINE - // ACCESS THE FUTURE
+
+## Description
+
+Vikas AI is a revolutionary AI chat interface that runs entirely in your web browser using WebGPU acceleration. Unlike traditional AI chatbots that send your data to remote servers, Vikas AI processes everything locally on your device, ensuring complete privacy and data security.
+
+## Key Features
+
+- **100% Privacy**: All AI processing happens in your browser. No data ever leaves your device.
+- **WebGPU Powered**: Utilizes WebGPU for hardware-accelerated machine learning inference.
+- **Offline Capable**: Once loaded, works without internet connection.
+- **Real-time Streaming**: Get instant responses with streaming text generation.
+- **Modern UI**: Beautiful retro-tech aesthetic with scanline effects and smooth animations.
+- **Cross-platform**: Works on any device with WebGPU-enabled browser (Chrome 113+, Edge 113+).
+
+## Technical Stack
+
+- **Frontend**: HTML5, TypeScript, SCSS, Bootstrap 5
+- **AI Engine**: WebLLM, ONNX Runtime
+- **Fonts**: IBM Plex Sans, IBM Plex Mono
+- **Deployment**: GitHub Pages
+- **Build Tools**: TypeScript Compiler, Webpack
+
+## Use Cases
+
+1. **Private Conversations**: Discuss sensitive topics without worrying about data collection
+2. **Offline AI**: Use AI capabilities without internet connectivity
+3. **Education**: Learn about AI and machine learning in a hands-on environment
+4. **Business Consulting**: Get AI assistance for business decisions privately
+5. **Development**: Test and prototype AI applications locally
+
+## About VVG ONLINE
+
+VVG ONLINE is a digital business consulting company specializing in:
+- Digital Transformation Strategy
+- AI & Machine Learning Solutions
+- Web & Mobile Application Development
+- Business Process Automation
+- Data Analytics & Visualization
+
+Website: https://vvgonline.net
+Location: Indore, Madhya Pradesh, India
+
+## Technology Details
+
+### Browser Requirements
+- Chrome 113+ or Edge 113+ (WebGPU support required)
+- Minimum 4GB RAM recommended
+- GPU with WebGPU support
+
+### AI Models
+- Vikas Base: Optimized for speed and efficiency
+- Vikas Enhanced: Advanced model for complex queries
+
+### Privacy Architecture
+1. Models downloaded once and cached locally
+2. All inference runs in browser using WebGPU
+3. No API calls to external servers
+4. Conversations stored in browser localStorage
+5. Complete data sovereignty
+
+## Performance
+
+- First load: 2-5 seconds (model caching)
+- Subsequent loads: <1 second
+- Inference speed: 15-30 tokens/second (varies by device)
+- Memory usage: 500MB - 2GB (varies by model)
+
+## License
+
+MIT License - Free and open source
+
+## Contact
+
+For business inquiries or collaboration:
+- Email: contact@vvgonline.net
+- Website: https://vvgonline.net
+- GitHub: https://github.com/vvgonline
+- Twitter: @vvgonlinedotnet
+
+## Version
+
+Current Version: 1.0.0
+Last Updated: February 2026
+
+---
+
+// ACCESS THE FUTURE with Vikas AI
