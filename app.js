@@ -202,36 +202,62 @@ class VikasAI {
             }
         }
 
-        // If we found a good match (>30% similarity), use it
-        if (bestMatch && highestScore > 0.3) {
+        // FIXED: Lower threshold from 0.3 to 0.15 for better matching
+        // This allows short queries like "web design" or "digital transformation" to match
+        if (bestMatch && highestScore > 0.15) {
             const assistantMsg = bestMatch.messages.find(m => m.role === 'assistant');
             if (assistantMsg) {
+                console.log(`✓ Matched with score: ${highestScore.toFixed(2)}`);
                 return assistantMsg.content;
             }
         }
 
         // Otherwise, return a contextual fallback
+        console.log(`✗ No good match (best score: ${highestScore.toFixed(2)})`);
         return this.getContextualFallback(userMessage);
     }
 
     calculateSimilarity(str1, str2) {
+        // Normalize strings
         const words1 = str1.split(/\s+/).filter(w => w.length > 2);
         const words2 = str2.split(/\s+/).filter(w => w.length > 2);
         
         if (words1.length === 0 || words2.length === 0) return 0;
 
         let matches = 0;
+        let exactMatches = 0;
         const words2Set = new Set(words2);
 
+        // Count word matches
         for (const word of words1) {
             if (words2Set.has(word)) {
                 matches++;
+                exactMatches++;
+            } else {
+                // Check for partial matches (substring)
+                for (const word2 of words2) {
+                    if (word.includes(word2) || word2.includes(word)) {
+                        matches += 0.5; // Partial match gets half credit
+                        break;
+                    }
+                }
             }
         }
 
-        // Weighted by length to favor longer matches
-        const lengthBonus = Math.min(words1.length, words2.length) / Math.max(words1.length, words2.length);
-        return (matches / Math.max(words1.length, words2.length)) * lengthBonus;
+        // Calculate base similarity
+        const baseSimilarity = matches / Math.max(words1.length, words2.length);
+        
+        // Boost for exact matches
+        const exactBonus = exactMatches > 0 ? 0.2 : 0;
+        
+        // Boost for short queries (2-3 words) with at least 1 exact match
+        const shortQueryBoost = (words1.length <= 3 && exactMatches >= 1) ? 0.15 : 0;
+        
+        // Length penalty is less harsh now
+        const lengthFactor = Math.min(words1.length, words2.length) / Math.max(words1.length, words2.length);
+        const lengthPenalty = lengthFactor * 0.3; // Reduced from full weight
+        
+        return Math.min(1.0, baseSimilarity + exactBonus + shortQueryBoost + lengthPenalty);
     }
 
     getContextualFallback(userMessage) {
