@@ -14,6 +14,13 @@ interface ChatSession {
     createdAt: Date;
 }
 
+interface DatasetEntry {
+    messages: Array<{
+        role: string;
+        content: string;
+    }>;
+}
+
 class VikasAI {
     private currentSession: ChatSession | null = null;
     private sessions: ChatSession[] = [];
@@ -24,9 +31,12 @@ class VikasAI {
     private chatHistory: HTMLElement;
     private themeToggle: HTMLButtonElement;
     private modelSelect: HTMLSelectElement;
+    private dataset: DatasetEntry[] = [];
+    private datasetLoaded: boolean = false;
 
     constructor() {
         this.initializeElements();
+        this.loadDataset();
         this.loadSessions();
         this.attachEventListeners();
         this.initializeTheme();
@@ -41,6 +51,46 @@ class VikasAI {
         this.chatHistory = document.getElementById('chatHistory') as HTMLElement;
         this.themeToggle = document.getElementById('themeToggle') as HTMLButtonElement;
         this.modelSelect = document.getElementById('modelSelect') as HTMLSelectElement;
+    }
+
+    private async loadDataset(): Promise<void> {
+        try {
+            console.log('Loading validated-dataset.jsonl...');
+            const response = await fetch('validated-dataset.jsonl');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const text = await response.text();
+            const lines = text.trim().split('\n');
+            
+            this.dataset = lines
+                .filter(line => line.trim())
+                .map(line => JSON.parse(line));
+            
+            this.datasetLoaded = true;
+            console.log(`✓ Loaded ${this.dataset.length} training examples`);
+            this.updateModelStatus('ready');
+        } catch (error) {
+            console.error('Error loading dataset:', error);
+            this.datasetLoaded = false;
+            this.updateModelStatus('error');
+        }
+    }
+
+    private updateModelStatus(status: string): void {
+        const statusEl = document.getElementById('modelStatus');
+        if (statusEl) {
+            if (status === 'ready') {
+                statusEl.className = 'model-status status-ready';
+                statusEl.innerHTML = '<span class="status-dot"></span> Model Ready';
+            } else if (status === 'error') {
+                statusEl.className = 'model-status status-error';
+                statusEl.innerHTML = '<span class="status-dot"></span> Model Error';
+            } else {
+                statusEl.className = 'model-status status-loading';
+                statusEl.innerHTML = '<span class="status-dot"></span> Loading...';
+            }
+        }
     }
 
     private attachEventListeners(): void {
@@ -130,7 +180,7 @@ class VikasAI {
         this.renderMessages();
         this.saveSessions();
 
-        // Simulate AI response (Phase 1: Using dataset)
+        // Get AI response
         await this.getAIResponse(content);
     }
 
@@ -141,20 +191,21 @@ class VikasAI {
         this.showTypingIndicator();
 
         // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+        await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 700));
 
-        // Phase 1: Simple rule-based responses
-        const responses = [
-            "I'm Vikas AI, your privacy-first assistant running entirely in your browser. How can I help you today?",
-            "That's an interesting question! As an in-browser AI, I'm here to assist you while keeping your data completely private.",
-            "I understand what you're asking. Let me help you with that using my local knowledge base.",
-            "Great question! Since I run entirely in your browser, your conversations never leave your device.",
-            "I'm processing your request locally on your device. This ensures complete privacy and security."
-        ];
+        let responseContent: string;
+
+        if (this.datasetLoaded && this.dataset.length > 0) {
+            // Use dataset to find best matching response
+            responseContent = this.findBestResponse(userMessage);
+        } else {
+            // Fallback responses if dataset not loaded
+            responseContent = this.getFallbackResponse();
+        }
 
         const aiMessage: Message = {
             role: 'assistant',
-            content: responses[Math.floor(Math.random() * responses.length)],
+            content: responseContent,
             timestamp: new Date()
         };
 
@@ -164,10 +215,92 @@ class VikasAI {
         this.saveSessions();
     }
 
+    private findBestResponse(userMessage: string): string {
+        const userLower = userMessage.toLowerCase();
+        let bestMatch: DatasetEntry | null = null;
+        let highestScore = 0;
+
+        // Calculate similarity for each dataset entry
+        for (const entry of this.dataset) {
+            const userMsg = entry.messages.find(m => m.role === 'user');
+            if (!userMsg) continue;
+
+            const score = this.calculateSimilarity(userLower, userMsg.content.toLowerCase());
+            
+            if (score > highestScore) {
+                highestScore = score;
+                bestMatch = entry;
+            }
+        }
+
+        // If we found a good match (>30% similarity), use it
+        if (bestMatch && highestScore > 0.3) {
+            const assistantMsg = bestMatch.messages.find(m => m.role === 'assistant');
+            if (assistantMsg) {
+                return assistantMsg.content;
+            }
+        }
+
+        // Otherwise, return a contextual fallback
+        return this.getContextualFallback(userMessage);
+    }
+
+    private calculateSimilarity(str1: string, str2: string): number {
+        const words1 = str1.split(/\s+/).filter(w => w.length > 2);
+        const words2 = str2.split(/\s+/).filter(w => w.length > 2);
+        
+        if (words1.length === 0 || words2.length === 0) return 0;
+
+        let matches = 0;
+        const words2Set = new Set(words2);
+
+        for (const word of words1) {
+            if (words2Set.has(word)) {
+                matches++;
+            }
+        }
+
+        // Weighted by length to favor longer matches
+        const lengthBonus = Math.min(words1.length, words2.length) / Math.max(words1.length, words2.length);
+        return (matches / Math.max(words1.length, words2.length)) * lengthBonus;
+    }
+
+    private getContextualFallback(userMessage: string): string {
+        const lower = userMessage.toLowerCase();
+        
+        // Check for specific keywords and provide contextual responses
+        if (lower.includes('help') || lower.includes('how')) {
+            return "I'm Vikas AI, your browser-native assistant. I can help answer questions about technology, business consulting, and general topics. What specific area would you like assistance with?";
+        }
+        
+        if (lower.includes('who') || lower.includes('what are you')) {
+            return "I'm Vikas AI, created by VVG ONLINE - a digital business consulting company. I run entirely in your browser, ensuring complete privacy. All processing happens on your device, and your conversations never leave your computer. // ACCESS THE FUTURE";
+        }
+        
+        if (lower.includes('privacy') || lower.includes('data') || lower.includes('secure')) {
+            return "Privacy is my core feature! I operate 100% in your browser using WebAssembly and local processing. No data is sent to any servers, no tracking, no cloud storage. Your conversations are stored only in your browser's local storage and never leave your device.";
+        }
+        
+        if (lower.includes('thank') || lower.includes('thanks')) {
+            return "You're welcome! I'm here whenever you need assistance. Remember, all our conversations stay private on your device. Feel free to ask me anything!";
+        }
+
+        return "That's an interesting question! As your privacy-first AI assistant running entirely in your browser, I'm here to help. Could you provide more details or rephrase your question? I'm continuously learning from our validated dataset to provide better responses.";
+    }
+
+    private getFallbackResponse(): string {
+        const responses = [
+            "I'm Vikas AI, your privacy-first assistant running entirely in your browser. The knowledge base is still loading, but I'm here to help!",
+            "I'm currently initializing my knowledge base. As a browser-native AI, all processing happens locally on your device for complete privacy.",
+            "Model is loading... In the meantime, know that I'm Vikas AI by VVG ONLINE - bringing you privacy-first AI assistance. // ACCESS THE FUTURE"
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
     private showTypingIndicator(): void {
         const indicator = document.createElement('div');
         indicator.id = 'typingIndicator';
-        indicator.className = 'message message-ai';
+        indicator.className = 'message message-assistant';
         indicator.innerHTML = `
             <div class="message-bubble">
                 <div class="typing-dots">
@@ -213,7 +346,7 @@ class VikasAI {
 
             messageEl.innerHTML = `
                 <div class="message-bubble">
-                    <div class="message-content">${this.escapeHtml(message.content)}</div>
+                    <div class="message-content">${this.formatContent(message.content)}</div>
                     <small class="message-timestamp">${time}</small>
                 </div>
             `;
@@ -222,6 +355,13 @@ class VikasAI {
         });
 
         this.messagesArea.scrollTop = this.messagesArea.scrollHeight;
+    }
+
+    private formatContent(content: string): string {
+        // Escape HTML but preserve line breaks
+        const escaped = this.escapeHtml(content);
+        // Convert line breaks to <br>
+        return escaped.replace(/\n/g, '<br>');
     }
 
     private clearMessages(): void {
@@ -245,7 +385,7 @@ class VikasAI {
                         </div>
                         <div class="feature">
                             <span class="feature-icon">⚡</span>
-                            <span class="feature-text">WebGPU Powered</span>
+                            <span class="feature-text">Dataset Powered</span>
                         </div>
                         <div class="feature">
                             <span class="feature-icon">🌐</span>
@@ -255,6 +395,9 @@ class VikasAI {
                             <span class="feature-icon">🚀</span>
                             <span class="feature-text">Real-time</span>
                         </div>
+                    </div>
+                    <div id="modelStatus" class="model-status status-loading">
+                        <span class="status-dot"></span> Loading dataset...
                     </div>
                 </div>
             </div>
@@ -272,6 +415,9 @@ class VikasAI {
         this.sessions.forEach(session => {
             const item = document.createElement('div');
             item.className = 'history-item';
+            if (this.currentSession && session.id === this.currentSession.id) {
+                item.classList.add('active');
+            }
             item.textContent = session.title;
             item.addEventListener('click', () => this.loadSession(session.id));
             this.chatHistory.appendChild(item);
@@ -283,6 +429,7 @@ class VikasAI {
         if (session) {
             this.currentSession = session;
             this.renderMessages();
+            this.renderChatHistory();
         }
     }
 
