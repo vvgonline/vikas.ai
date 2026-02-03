@@ -1,0 +1,33 @@
+{
+  "name": "vikas-ai",
+  "version": "1.0.0",
+  "description": "Vikas AI - Privacy-first in-browser AI chat powered by WebLLM",
+  "main": "app.js",
+  "scripts": {
+    "dev": "npx http-server -p 8080 -o",
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "deploy": "gh-pages -d ."
+  },
+  "keywords": [
+    "ai",
+    "webllm",
+    "chat",
+    "browser",
+    "privacy",
+    "ml",
+    "machine-learning"
+  ],
+  "author": "VVG ONLINE <contact@vvgonline.net> (https://vvgonline.net)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vvgonline/vikas.ai.git"
+  },
+  "homepage": "https://vvgonline.github.io/vikas.ai/",
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "gh-pages": "^6.1.0",
+    "http-server": "^14.1.1"
+  }
+}
